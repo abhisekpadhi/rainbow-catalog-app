@@ -183,7 +183,6 @@ function ScanOpScreen({route, navigation}: Props) {
     //@ts-ignore
     const handleBarCodeScanned = ({type, data}) => {
         setScanned(true);
-        console.log(type, data);
         const terms = data.split(', ');
         // const _sku = {
         //     skuId: terms[0],

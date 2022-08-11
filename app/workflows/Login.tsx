@@ -26,7 +26,6 @@ function Login(props: {onLogin: () => void}) {
             otp,
         };
         const res = await loginWithOtp(payload);
-        console.log('login response', res);
         dispatch(addFarmer(res.data.farmer));
         dispatch(
             addCreds({

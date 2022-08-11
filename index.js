@@ -11,6 +11,7 @@ import configurePersistedStore from './app/common/redux/store';
 import {Provider} from 'react-redux';
 import {persistStore} from 'redux-persist';
 import {PersistGate} from 'redux-persist/es/integration/react';
+import { ToastProvider } from 'react-native-toast-notifications'
 
 export const store = configurePersistedStore;
 export const persistedStore = persistStore(store);
@@ -35,7 +36,9 @@ function Main() {
                             <Text>Loading...</Text>
                         </View>
                     }>
-                    <AppStackScreens />
+                    <ToastProvider>
+                        <AppStackScreens />
+                    </ToastProvider>
                 </NavigationContainer>
             </PersistGate>
         </Provider>

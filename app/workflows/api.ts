@@ -9,7 +9,7 @@ import {
     IGenericMessageResp,
     IUpdateFarmResp,
     IInventoryUpdateRequest,
-    OrderStatus, IGetSellerOrdersResp, ISellerOrderStatusUpdateRequest,
+    OrderStatus, IGetSellerOrdersResp, ISellerOrderStatusUpdateRequest, IInventoryPricingUpdateRequest,
 } from './models';
 
 export const requestOtp = (payload: {phone: string}) => {
@@ -53,6 +53,16 @@ export const getLedger = (farmId: number) => {
     );
 };
 
+export const updateInventoryPricing = (
+    payload: IInventoryPricingUpdateRequest,
+) => {
+    const url = API_URL + '/inventory/update/price';
+    return ApiUtils.makePostRequestWithJsonBody<IGenericMessageResp>(
+        url,
+        payload,
+    );
+};
+
 export const updateInventory = (payload: IInventoryUpdateRequest) => {
     const url = API_URL + '/inventory/update';
     return ApiUtils.makePostRequestWithJsonBody<IGenericMessageResp>(
@@ -73,7 +83,9 @@ export const getSellerOrders = (providerId: string, status: OrderStatus[]) => {
     );
 };
 
-export const updateSellerOrderStatus = (payload: ISellerOrderStatusUpdateRequest) => {
+export const updateSellerOrderStatus = (
+    payload: ISellerOrderStatusUpdateRequest,
+) => {
     const url = API_URL + '/seller/orders/status';
     return ApiUtils.makePostRequestWithJsonBody<IGenericMessageResp>(
         url,

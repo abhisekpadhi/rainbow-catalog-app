@@ -26,7 +26,6 @@ const AppStackScreens = () => {
     const credsStore: CredentialsState = useSelector((state: any) => state.credentialsReducer);
     useEffect(() => {
         if (credsStore.accessToken.length > 0) {
-            console.log('navigator - loggedIn');
             setIsLoggedIn(true);
         }
     }, [credsStore]);

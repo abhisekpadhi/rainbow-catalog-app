@@ -18,6 +18,8 @@ import {getFarms} from './api';
 import {IFarmer} from '../common/redux/farmer-reducer';
 import {addFarm} from '../common/redux/actions';
 import FarmOnboardingScreen from './FarmOnboardingScreen';
+import {IFarm} from '../common/redux/farm-reducer';
+import {useToast} from 'react-native-toast-notifications';
 
 function HomeScreen() {
     const navigation = useNavigation<any>();
@@ -28,13 +30,12 @@ function HomeScreen() {
         });
     }, [navigation]);
     const farmerStore: IFarmer = useSelector((state: any) => state.farmerReducer);
+    const farmStore: IFarm = useSelector((state: any) => state.farmReducer);
     const [loadHome, setLoadHome] = useState(false);
     const [needToAddFarm, setNeedToAddFarm] = useState(false);
     useEffect(() => {
-        console.log('farmerId in app', farmerStore.id);
         (async () => {
             const farms = await getFarms(farmerStore.id);
-            console.log('farms', farms);
             if (farms.data.farms.length > 0) {
                 addFarm(farms.data.farms[0]);
                 setLoadHome(true);
@@ -115,16 +116,20 @@ function HomeScreen() {
             </View>
         )
     }
+    const toast = useToast();
     const whatsappShare = () => {
-        const msg = `चिंटू जी के दुकान से जुडिये और टमाटर केला और आदि वस्तु खरिदिये, लिंक पे क्लिक करें - https://ondc.in/farmers/chintu-as2245/`;
+        const farmName = farmStore.farmName;
+        const msg = `${farmName} के दुकान से जुडिये और टमाटर केला और आदि वस्तु खरिदिये, लिंक पे क्लिक करें - https://dhoomnow.com/farmers/${farmStore.providerId}/`;
         let url =
             'whatsapp://send?text=' + msg;
         Linking.openURL(url)
-            .then((data) => {
-                console.log('WhatsApp Opened');
+            .then((_) => {
+                // console.log('WhatsApp Opened');
             })
             .catch(() => {
-                Alert.alert('Make sure Whatsapp installed on your device');
+                toast.show('सुनिश्चित करें कि आपके मोबाइल में व्हाट्सएप है', {
+                    type: 'warning',
+                });
             });
     };
     const getProfile = () => {
@@ -149,7 +154,14 @@ function HomeScreen() {
         );
     };
     if (needToAddFarm) {
-        return <FarmOnboardingScreen />;
+        return (
+            <FarmOnboardingScreen
+                onSuccess={() => {
+                    setLoadHome(true);
+                    setNeedToAddFarm(false);
+                }}
+            />
+        );
     }
     if (!loadHome) {
         return (

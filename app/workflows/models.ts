@@ -13,11 +13,14 @@ export interface IInventoryResp {
     idealDelTat: string;
     skuId: string;
     qty: number;
+    priceInPaise: number;
+    itemId: string;
 }
 
 export enum InventoryOp {
     add = 'add',
     remove = 'remove',
+    price = 'price',
 }
 export interface IInventoryLedger {
     farmId: number;
@@ -36,6 +39,29 @@ export interface IInventoryUpdateRequest {
     productId: string;
     qty: number;
     itemId: string;
+}
+
+export interface IInventoryPricingUpdateRequest {
+    priceInPaise: number;
+    itemId: string;
+}
+
+export interface IProductCatalog {
+    productName: string;
+    packSize: string;
+    productDescription: string;
+    imageUrl: string;
+    grading: string;
+    variant: string;
+    perishability: string;
+    logisticsNeed: string;
+    coldChain: string;
+    idealDelTat: string;
+    skuId: string;
+}
+
+export interface IFarmInventoryLedgerResp extends IInventoryLedger {
+    product: IProductCatalog;
 }
 
 export enum OrderStatus {
@@ -89,7 +115,7 @@ export interface IGetInventoryResp {
 
 export interface IGetLedgerResp {
     data: {
-        ledger: IInventoryLedger[];
+        ledger: IFarmInventoryLedgerResp[];
     };
 }
 
@@ -101,7 +127,7 @@ export interface IGetFarmsResp extends BaseResp {
 
 export interface IUpdateFarmResp extends BaseResp {
     data: {
-        farms: IFarm;
+        farm: IFarm;
     };
 }
 
