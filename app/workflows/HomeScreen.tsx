@@ -84,14 +84,14 @@ function HomeScreen() {
                         <Image source={require('../img/out.png')} style={{ width: 20, height: 20, resizeMode: 'contain', marginLeft: 8}} />
                     </TouchableOpacity>
                 </View>
-                <View style={{flexDirection: 'row', marginTop: 16}}>
-                    <TouchableOpacity onPress={() => navigation.navigate('ScanOpScreen')} style={[styles.btn, { backgroundColor: '#fff0b1'}]}>
-                        <Text style={[styles.btnText, {color: '#766407'}]}>
-                            माल खराब
-                        </Text>
-                        <Image source={require('../img/bin.png')} style={{ width: 20, height: 20, resizeMode: 'contain', marginLeft: 8}} />
-                    </TouchableOpacity>
-                </View>
+                {/*<View style={{flexDirection: 'row', marginTop: 16}}>*/}
+                {/*    <TouchableOpacity onPress={() => navigation.navigate('ScanOpScreen')} style={[styles.btn, { backgroundColor: '#fff0b1'}]}>*/}
+                {/*        <Text style={[styles.btnText, {color: '#766407'}]}>*/}
+                {/*            माल खराब*/}
+                {/*        </Text>*/}
+                {/*        <Image source={require('../img/bin.png')} style={{ width: 20, height: 20, resizeMode: 'contain', marginLeft: 8}} />*/}
+                {/*    </TouchableOpacity>*/}
+                {/*</View>*/}
             </View>
         );
     };
@@ -179,7 +179,7 @@ function HomeScreen() {
             <StatusBar barStyle={'dark-content'} backgroundColor={'#FFFFF0'} />
             <ScrollView>
                 <Text style={{fontSize: 20, fontWeight: 'bold', color: '#000', paddingVertical: 2, textAlign: 'center', marginTop: 10}}>
-                    🙏 नमस्ते चिंटू जी
+                    🙏 नमस्ते
                 </Text>
                 {getOrderOps()}
                 {getInventoryOp()}

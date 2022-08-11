@@ -16,6 +16,12 @@ import {useIsFocused} from '@react-navigation/native';
 import {Camera} from 'expo-camera';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {AppStackParamList} from '../common/nav/navigator';
+import {updateInventory} from './api';
+import {IInventoryUpdateRequest, InventoryOp} from './models';
+import {IFarm} from '../common/redux/farm-reducer';
+import {useSelector} from 'react-redux';
+import {useToast} from 'react-native-toast-notifications';
+import {ProgressIndicator} from '../common/components/ProgressIndicator';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'ScanOpScreen'>;
 
@@ -25,11 +31,13 @@ function ScanOpScreen({route, navigation}: Props) {
     const [isActive, setIsActive] = useState(true);
     const [scanned, setScanned] = useState(false);
     const [sku, setSku] = useState<any>(null);
+    const [remove, setRemove] = useState(false);
     const isFocused = useIsFocused();
-    // const navigation = useNavigation();
-    // const route = useRoute<Props>();
     const [visible, setVisible] = useState(false);
     const [price, setPrice] = useState(0);
+    const [progress, setProgress] = useState(false);
+    const farmStore: IFarm = useSelector((state: any) => state.farmReducer);
+    const toast = useToast();
     useEffect(() => {
         if (route.params) {
             if ('inward' in route.params) {
@@ -73,14 +81,58 @@ function ScanOpScreen({route, navigation}: Props) {
             setHasPermission(status === 'granted');
         })();
     }, []);
-
+    useEffect(() => {
+        if (sku !== null && !inward && remove) {
+            (async () => {
+                await handleInventoryUpdate();
+            })();
+        }
+    }, [sku]);
     if (hasPermission === null) {
         return <View />;
     }
     if (hasPermission === false) {
-        return <Text>No access to camera</Text>;
+        return (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+                <Text>
+                    No access to camera
+                </Text>
+            </View>
+        );
     }
-
+    const handleInventoryUpdate = async () => {
+        if (!inward) {
+            toast.show('स्टॉक अपडेट कर रहे हैं', { type: 'warning'});
+        }
+        setProgress(true);
+        try {
+            const payload: IInventoryUpdateRequest = {
+                op: inward ? InventoryOp.add : InventoryOp.remove,
+                farmId: farmStore.id,
+                productId: sku['पहचान'],
+                qty: 1,
+                itemId: '',
+                priceInPaise: price * 100,
+            };
+            console.log(payload);
+            const res = await updateInventory(payload);
+            if (res.data.message === 'ok') {
+                toast.show('सफल', { type: 'success'});
+            } else {
+                toast.show('विफल', {
+                    type: 'danger',
+                });
+            }
+        } catch (e) {
+            toast.show('विफल, बाद में पुन: प्रयास', {
+                type: 'danger',
+            });
+        } finally {
+            setProgress(false);
+            setRemove(false);
+            setVisible(false);
+        }
+    };
     const priceChangeModal = () => (
         <Modal
             animationType="slide"
@@ -115,7 +167,13 @@ function ScanOpScreen({route, navigation}: Props) {
                         keyboardType={'number-pad'}
                         autoFocus={true}
                         value={price.toString(10)}
-                        onChangeText={text => setPrice(parseInt(text, 10))}
+                        onChangeText={text => {
+                            if (text.length === 0) {
+                                setPrice(0);
+                            } else {
+                                setPrice(parseInt(text, 10))
+                            }
+                        }}
                         placeholder={'उदाहरण के लिए - 224'}
                         style={{
                             textAlign: 'center',
@@ -132,8 +190,11 @@ function ScanOpScreen({route, navigation}: Props) {
                     />
                     <TouchableOpacity
                         onPress={() => {
-                            setVisible(false);
+                            if (!progress) {
+                                handleInventoryUpdate().then(_ => {});
+                            }
                         }}
+                        disabled={progress}
                         style={{
                             marginTop: 20,
                             backgroundColor: '#ffd0af',
@@ -144,14 +205,16 @@ function ScanOpScreen({route, navigation}: Props) {
                             elevation: 2,
                             width: 220,
                         }}>
-                        <Text
+                        {progress? (
+                            <ProgressIndicator />
+                        ) :(<Text
                             style={{
                                 fontSize: 16,
                                 fontWeight: 'bold',
                                 color: '#e56200',
                             }}>
                             भाव पुष्टि करें
-                        </Text>
+                        </Text>)}
                     </TouchableOpacity>
                 </View>
                 <TouchableOpacity
@@ -214,8 +277,11 @@ function ScanOpScreen({route, navigation}: Props) {
             'डिलीवरी समय': terms[11],
         };
         setSku(_sku);
+        console.log('inward', inward);
         if (inward) {
             setVisible(true);
+        } else {
+            setRemove(true);
         }
         // navigation.navigate('RideTracking');
     };
