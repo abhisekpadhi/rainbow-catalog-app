@@ -118,7 +118,7 @@ function HomeScreen() {
     const toast = useToast();
     const whatsappShare = () => {
         const farmName = farmStore.farmName;
-        const msg = `${farmName} के दुकान से जुडिये और टमाटर केला और आदि वस्तु खरिदिये, लिंक पे क्लिक करें - https://dhoomnow.com/farmers/${farmStore.providerId}/`;
+        const msg = `${farmName} के दुकान से जुडिये और टमाटर केला और आदि वस्तु खरिदिये, लिंक पे क्लिक करें - https://dhoomnow.com/sellers/${farmStore.providerId}/`;
         let url =
             'whatsapp://send?text=' + msg;
         Linking.openURL(url)
