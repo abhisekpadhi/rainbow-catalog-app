@@ -3,7 +3,7 @@ import {Alert, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {loginWithOtp, requestOtp} from './api';
 import {useNavigation} from '@react-navigation/native';
 import {useDispatch} from 'react-redux';
-import {addCreds, addFarmer} from '../common/redux/actions';
+import {addCreds, addFarm, addFarmer} from '../common/redux/actions';
 import dayjs from 'dayjs';
 
 function Login(props: {onLogin: () => void}) {
@@ -26,15 +26,23 @@ function Login(props: {onLogin: () => void}) {
             otp,
         };
         const res = await loginWithOtp(payload);
-        dispatch(addFarmer(res.data.farmer));
-        dispatch(
-            addCreds({
-                accessToken: res.data.jwt,
-                accessTokenUpdatedAtMs: dayjs().valueOf(),
-                refreshToken: '',
-                refreshTokenUpdatedAtMs: 0,
-            }),
-        );
+        console.log('login res', res);
+        if (res.data.farmer) {
+            dispatch(addFarmer(res.data.farmer));
+            dispatch(
+                addCreds({
+                    accessToken: res.data.jwt,
+                    accessTokenUpdatedAtMs: dayjs().valueOf(),
+                    refreshToken: '',
+                    refreshTokenUpdatedAtMs: 0,
+                }),
+            );
+        }
+        if (res.data.farm && res.data.farm.length > 0) {
+            const farm = res.data.farm[0];
+            console.log('adding farm', farm);
+            dispatch(addFarm(farm));
+        }
     };
     const handleOtpRequest = async () => {
         if (phone.length < 10) {

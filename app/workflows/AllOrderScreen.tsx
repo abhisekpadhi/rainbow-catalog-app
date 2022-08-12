@@ -1,5 +1,6 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {
+    FlatList,
     Image,
     ScrollView,
     StyleSheet,
@@ -8,7 +9,40 @@ import {
     View,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {ISellerOrderResponse, OrderStatus} from './models';
+import {ProgressIndicator} from '../common/components/ProgressIndicator';
+import {getSellerOrders, updateSellerOrderStatus} from './api';
+import {IFarm} from '../common/redux/farm-reducer';
+import {useSelector} from 'react-redux';
+import store from '../common/redux/store';
+import dayjs from 'dayjs';
+import {useToast} from 'react-native-toast-notifications';
 
+export const OrderStatusStateTransition = {
+    [OrderStatus.active.toString()]: [OrderStatus.created],
+    [OrderStatus.created]: [OrderStatus.rts],
+    [OrderStatus.rts]: [OrderStatus.shipped],
+    [OrderStatus.shipped]: [
+        OrderStatus.ofd,
+        OrderStatus.delivered,
+        OrderStatus.rtoi,
+    ],
+    [OrderStatus.ofd]: [OrderStatus.delivered, OrderStatus.rtoi],
+    [OrderStatus.delivered]: [OrderStatus.rtoi],
+    [OrderStatus.rtoi]: [OrderStatus.delivered, OrderStatus.rtod],
+};
+const isTransitionPossible = (
+    currentStatus: OrderStatus,
+    newStatus: OrderStatus,
+) => {
+    console.log('currentStatus', currentStatus);
+    console.log('newStatus', newStatus);
+    return (
+        (OrderStatusStateTransition[currentStatus] as OrderStatus[]).includes(
+            newStatus,
+        ) || false
+    );
+};
 export default function AllOrderScreen() {
     const navigation = useNavigation();
     React.useLayoutEffect(() => {
@@ -16,7 +50,112 @@ export default function AllOrderScreen() {
             title: 'सभी ऑर्डर',
         });
     });
-    const orderUnit = () => {
+    const [loading, setLoading] = useState(true);
+    const [progress, setProgress] = useState(false);
+    const [orders, setOrders] = useState<ISellerOrderResponse[]>([]);
+    const farmStore: IFarm = useSelector((state: any) => state.farmReducer);
+    const toast = useToast();
+    useEffect(() => {
+        console.log(store.getState());
+        (async () => {
+            try {
+                const res = await getSellerOrders(farmStore.providerId, [
+                    OrderStatus.created,
+                    OrderStatus.delivered,
+                    OrderStatus.shipped,
+                    OrderStatus.cancelled,
+                    OrderStatus.rts,
+                ]);
+                console.log('orders', res.data.orders);
+                setOrders(res.data.orders);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, []);
+    if (loading) {
+        return (
+            <View
+                style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                <ProgressIndicator />
+            </View>
+        );
+    }
+    const handleOrderStatusUpdate = async (
+        orderId: string,
+        status: OrderStatus,
+    ) => {
+        setProgress(true);
+        try {
+            const res = await updateSellerOrderStatus({
+                orderId,
+                status,
+            });
+            if (res.data.message === 'ok') {
+                toast.show('सफल', {type: 'success', placement: 'bottom'});
+                const idx = orders.findIndex(o => o.sellerOrderId === orderId);
+                if (idx !== -1) {
+                    const updated = [...orders];
+                    updated[idx] = {...updated[idx], status};
+                    setOrders(updated);
+                }
+            } else {
+                toast.show(res.data.message, {
+                    type: 'danger',
+                    placement: 'bottom',
+                });
+            }
+        } catch (e) {
+            toast.show('विफल, बाद में पुन: प्रयास', {
+                type: 'danger',
+            });
+        } finally {
+            setProgress(false);
+        }
+    };
+
+    const getOrderStatusColor = (status: OrderStatus) => {
+        switch (status) {
+            case OrderStatus.active:
+                return '#ffd341';
+            case OrderStatus.cancelled:
+                return '#ec0e49';
+            case OrderStatus.created:
+                return '#4be4ff';
+            case OrderStatus.delivered:
+                return '#3dd900';
+            case OrderStatus.shipped:
+                return '#2bbe83';
+            case OrderStatus.ofd:
+                return '#329f69';
+            case OrderStatus.rts:
+                return '#2f9aff';
+            case OrderStatus.rtoi:
+                return '#9345e1';
+            case OrderStatus.rtod:
+                return '#dc14ca';
+            default:
+                return '#e1e1e1';
+        }
+    };
+    const orderUnit = (item: ISellerOrderResponse) => {
+        const shippable = isTransitionPossible(
+            item.status as OrderStatus,
+            OrderStatus.shipped,
+        );
+        const donable = isTransitionPossible(
+            item.status as OrderStatus,
+            OrderStatus.delivered,
+        );
+        const packable = isTransitionPossible(
+            item.status as OrderStatus,
+            OrderStatus.rts,
+        );
+        console.log(shippable, donable, packable);
         return (
             <View
                 style={{
@@ -25,24 +164,23 @@ export default function AllOrderScreen() {
                     backgroundColor: 'white',
                     marginVertical: 6,
                     marginHorizontal: 10,
-                }}
-            >
+                }}>
                 <View
                     style={{
                         paddingVertical: 4,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backgroundColor: '#91FF80',
-                    }}
-                >
+                        backgroundColor: getOrderStatusColor(
+                            item.status as OrderStatus,
+                        ),
+                    }}>
                     <Text
                         style={{
                             color: 'black',
                             fontWeight: 'bold',
                             textTransform: 'uppercase',
-                        }}
-                    >
-                        Status: Delivered
+                        }}>
+                        Status: {item.status}
                     </Text>
                 </View>
                 <View
@@ -53,35 +191,36 @@ export default function AllOrderScreen() {
                         borderStyle: 'dashed',
                         paddingVertical: 8,
                         paddingHorizontal: 4,
-                    }}
-                >
+                    }}>
                     <View
                         style={{
                             flex: 1,
                             borderRightWidth: 1,
                             borderStyle: 'dashed',
                             borderRightColor: 'grey',
-                        }}
-                    >
+                        }}>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
-                            }}
-                        >order_165938280474677</Text>
+                            }}>
+                            {item.sellerOrderId}
+                        </Text>
                     </View>
                     <View
                         style={{
                             flex: 1,
-                        }}
-                    >
+                        }}>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
                                 textAlign: 'right',
-                            }}
-                        >211 Jul, 2022, 04:30 PM</Text>
+                            }}>
+                            {dayjs(item.createdAt).format(
+                                'DD MMM, YY hh:mm: a',
+                            )}
+                        </Text>
                     </View>
                 </View>
                 <View
@@ -92,54 +231,50 @@ export default function AllOrderScreen() {
                         borderStyle: 'dashed',
                         paddingVertical: 8,
                         paddingHorizontal: 4,
-                    }}
-                >
+                    }}>
                     <View
                         style={{
                             flex: 1,
                             borderRightWidth: 1,
                             borderStyle: 'dashed',
                             borderRightColor: 'grey',
-                        }}
-                    >
+                        }}>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
                                 fontWeight: 'bold',
-                            }}
-                        >Delivery address</Text>
+                            }}>
+                            Delivery address
+                        </Text>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
-                            }}
-                        >
-                            443/1987-U, Road 11, Sector 24, Raj road, behing random chowk
+                            }}>
+                            {item.deliveryAddress}
                         </Text>
-
                     </View>
                     <View
                         style={{
                             flex: 1,
-                        }}
-                    >
+                        }}>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
                                 textAlign: 'right',
                                 fontWeight: 'bold',
-                            }}
-                        >Customer</Text>
+                            }}>
+                            Customer
+                        </Text>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
                                 textAlign: 'right',
-                            }}
-                        >
-                            John Doe Ji, +919876543210, johnji@mail.co
+                            }}>
+                            {item.customer}
                         </Text>
                     </View>
                 </View>
@@ -151,27 +286,25 @@ export default function AllOrderScreen() {
                         borderStyle: 'dashed',
                         paddingVertical: 8,
                         paddingHorizontal: 4,
-                    }}
-                >
+                    }}>
                     <View
                         style={{
                             flex: 1,
-                        }}
-                    >
+                        }}>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
                                 fontWeight: 'bold',
-                            }}
-                        >Customer note</Text>
+                            }}>
+                            Customer note
+                        </Text>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
-                            }}
-                        >
-                            please do good packaging, delivery at chinchiwad godown, bring tata ace, rasta kharab he
+                            }}>
+                            {item.customerNote}
                         </Text>
                     </View>
                 </View>
@@ -180,194 +313,271 @@ export default function AllOrderScreen() {
                         flexDirection: 'row',
                         paddingVertical: 8,
                         paddingHorizontal: 4,
-                    }}
-                >
+                    }}>
                     <View
                         style={{
                             flex: 3,
-                        }}
-                    >
+                        }}>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
                                 fontWeight: 'bold',
-                            }}
-                        >Item list</Text>
+                            }}>
+                            Item list
+                        </Text>
                     </View>
                     <View
                         style={{
                             flex: 1,
-                        }}
-                    >
+                        }}>
                         <Text
                             style={{
                                 color: 'black',
                                 fontSize: 12,
                                 textAlign: 'center',
                                 fontWeight: 'bold',
-                            }}
-                        >Qty</Text>
-                    </View>
-                </View>
-                <View
-                    style={{
-                        flexDirection: 'row',
-                        borderBottomWidth: 1,
-                        borderBottomColor: 'grey',
-                        borderStyle: 'dashed',
-                        paddingVertical: 8,
-                        paddingHorizontal: 4,
-                    }}
-                >
-                    <View
-                        style={{
-                            flex: 3,
-                        }}
-                    >
-                        <Text
-                            style={{
-                                color: 'black',
-                                fontSize: 12,
-                            }}
-                        >
-                            Tomato (orange, grade 6, medium) 25kg pack
+                            }}>
+                            Qty
                         </Text>
                     </View>
-                    <View
-                        style={{
-                            flex: 1,
-                        }}
-                    >
-                        <Text
-                            style={{
-                                color: 'black',
-                                fontSize: 12,
-                                textAlign: 'center',
-                            }}
-                        >6</Text>
-                    </View>
                 </View>
-                <View
-                    style={{
-                        flexDirection: 'row',
-                        borderBottomWidth: 1,
-                        borderBottomColor: 'grey',
-                        borderStyle: 'dashed',
-                        paddingVertical: 8,
-                        paddingHorizontal: 4,
-                    }}
-                >
+                {item.itemList.map(o => (
                     <View
+                        key={o.itemName}
                         style={{
-                            flex: 3,
-                        }}
-                    >
-                        <Text
+                            flexDirection: 'row',
+                            borderBottomWidth: 1,
+                            borderBottomColor: 'grey',
+                            borderStyle: 'dashed',
+                            paddingVertical: 8,
+                            paddingHorizontal: 4,
+                        }}>
+                        <View
                             style={{
-                                color: 'black',
-                                fontSize: 12,
-                            }}
-                        >
-                            Onion (orange, grade 6, medium) 25kg pack
-                        </Text>
-                    </View>
-                    <View
-                        style={{
-                            flex: 1,
-                        }}
-                    >
-                        <Text
+                                flex: 3,
+                            }}>
+                            <Text
+                                style={{
+                                    color: 'black',
+                                    fontSize: 12,
+                                }}>
+                                {o.itemName}
+                            </Text>
+                        </View>
+                        <View
                             style={{
-                                color: 'black',
-                                fontSize: 12,
-                                textAlign: 'center',
-                            }}
-                        >4</Text>
+                                flex: 1,
+                            }}>
+                            <Text
+                                style={{
+                                    color: 'black',
+                                    fontSize: 12,
+                                    textAlign: 'center',
+                                }}>
+                                {o.qty}
+                            </Text>
+                        </View>
                     </View>
-                </View>
+                ))}
                 <View
                     style={{
                         paddingVertical: 10,
-                    }}
-                >
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal: 4, paddingBottom: 6 }}>
-                        <TouchableOpacity
+                    }}>
+                    {progress ? (
+                        <View
                             style={{
-                                paddingVertical: 6,
-                                paddingHorizontal: 8,
-                                backgroundColor: '#FFCC80',
-                                flexDirection: 'row',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                borderRadius: 4,
-                                elevation: 4,
-                                marginRight: 10,
-                            }}
-                        >
-                            <Image source={require('../img/invoice.png')} style={{ width: 16, height: 16, resizeMode: 'contain', marginRight: 4}} />
-                            <Text style={{fontWeight: 'bold', color: 'black'}}>Invoice</Text>
-                        </TouchableOpacity>
-                        {/*<TouchableOpacity*/}
-                        {/*    style={{*/}
-                        {/*        paddingVertical: 6,*/}
-                        {/*        paddingHorizontal: 8,*/}
-                        {/*        backgroundColor: '#FF8080',*/}
-                        {/*        flexDirection: 'row',*/}
-                        {/*        alignItems: 'center',*/}
-                        {/*        justifyContent: 'center',*/}
-                        {/*        borderRadius: 4,*/}
-                        {/*        elevation: 4,*/}
-                        {/*        marginRight: 10,*/}
-                        {/*    }}*/}
-                        {/*>*/}
-                        {/*    <Image source={require('../img/cancel.png')} style={{ width: 16, height: 16, resizeMode: 'contain', marginRight: 4}} />*/}
-                        {/*    <Text style={{fontWeight: 'bold', color: 'black'}}>Cancel</Text>*/}
-                        {/*</TouchableOpacity>*/}
-                        <TouchableOpacity
-                            style={{
-                                paddingVertical: 6,
-                                paddingHorizontal: 8,
-                                backgroundColor: '#80E8FF',
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: 4,
-                                elevation: 4,
-                                marginRight: 10,
-                            }}
-                        >
-                            <Image source={require('../img/map.png')} style={{ width: 16, height: 16, resizeMode: 'contain', marginRight: 4}} />
-                            <Text style={{fontWeight: 'bold', color: 'black'}}>Map</Text>
-                        </TouchableOpacity>
-                        {/*<TouchableOpacity*/}
-                        {/*    style={{*/}
-                        {/*        paddingVertical: 6,*/}
-                        {/*        paddingHorizontal: 8,*/}
-                        {/*        backgroundColor: '#91FF80',*/}
-                        {/*        flexDirection: 'row',*/}
-                        {/*        alignItems: 'center',*/}
-                        {/*        justifyContent: 'center',*/}
-                        {/*        borderRadius: 4,*/}
-                        {/*        elevation: 4,*/}
-                        {/*        marginRight: 10,*/}
-                        {/*    }}*/}
-                        {/*>*/}
-                        {/*    <Image source={require('../img/done.png')} style={{ width: 16, height: 16, resizeMode: 'contain', marginRight: 4}} />*/}
-                        {/*    <Text style={{fontWeight: 'bold', color: 'black'}}>Done</Text>*/}
-                        {/*</TouchableOpacity>*/}
-                    </ScrollView>
+                            }}>
+                            <ProgressIndicator />
+                        </View>
+                    ) : (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{
+                                paddingHorizontal: 4,
+                                paddingBottom: 6,
+                            }}>
+                            {/*<TouchableOpacity*/}
+                            {/*    style={{*/}
+                            {/*        paddingVertical: 6,*/}
+                            {/*        paddingHorizontal: 8,*/}
+                            {/*        backgroundColor: '#FFCC80',*/}
+                            {/*        flexDirection: 'row',*/}
+                            {/*        alignItems: 'center',*/}
+                            {/*        justifyContent: 'center',*/}
+                            {/*        borderRadius: 4,*/}
+                            {/*        elevation: 4,*/}
+                            {/*        marginRight: 10,*/}
+                            {/*    }}>*/}
+                            {/*    <Image*/}
+                            {/*        source={require('../img/invoice.png')}*/}
+                            {/*        style={{*/}
+                            {/*            width: 16,*/}
+                            {/*            height: 16,*/}
+                            {/*            resizeMode: 'contain',*/}
+                            {/*            marginRight: 4,*/}
+                            {/*        }}*/}
+                            {/*    />*/}
+                            {/*    <Text*/}
+                            {/*        style={{*/}
+                            {/*            fontWeight: 'bold',*/}
+                            {/*            color: 'black',*/}
+                            {/*        }}>*/}
+                            {/*        Invoice*/}
+                            {/*    </Text>*/}
+                            {/*</TouchableOpacity>*/}
+                            {packable && (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if (!progress) {
+                                            handleOrderStatusUpdate(
+                                                item.sellerOrderId,
+                                                OrderStatus.rts,
+                                            ).then(_ => {});
+                                        }
+                                    }}
+                                    disabled={progress}
+                                    style={{
+                                        paddingVertical: 6,
+                                        paddingHorizontal: 8,
+                                        backgroundColor: '#2f9aff',
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: 4,
+                                        elevation: 4,
+                                        marginRight: 10,
+                                    }}>
+                                    <Image
+                                        source={require('../img/packed.png')}
+                                        style={{
+                                            width: 16,
+                                            height: 16,
+                                            resizeMode: 'contain',
+                                            marginRight: 4,
+                                        }}
+                                    />
+                                    <Text
+                                        style={{
+                                            fontWeight: 'bold',
+                                            color: 'black',
+                                        }}>
+                                        Packed
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                            {shippable && (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if (!progress) {
+                                            handleOrderStatusUpdate(
+                                                item.sellerOrderId,
+                                                OrderStatus.shipped,
+                                            ).then(_ => {});
+                                        }
+                                    }}
+                                    disabled={progress}
+                                    style={{
+                                        paddingVertical: 6,
+                                        paddingHorizontal: 8,
+                                        backgroundColor: '#2bbe83',
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: 4,
+                                        elevation: 4,
+                                        marginRight: 10,
+                                    }}>
+                                    <Image
+                                        source={require('../img/shipped.png')}
+                                        style={{
+                                            width: 16,
+                                            height: 16,
+                                            resizeMode: 'contain',
+                                            marginRight: 4,
+                                        }}
+                                    />
+                                    <Text
+                                        style={{
+                                            fontWeight: 'bold',
+                                            color: 'black',
+                                        }}>
+                                        shipped
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                            {donable && (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if (!progress) {
+                                            handleOrderStatusUpdate(
+                                                item.sellerOrderId,
+                                                OrderStatus.delivered,
+                                            ).then(_ => {});
+                                        }
+                                    }}
+                                    disabled={progress}
+                                    style={{
+                                        paddingVertical: 6,
+                                        paddingHorizontal: 8,
+                                        backgroundColor: '#3dd900',
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: 4,
+                                        elevation: 4,
+                                        marginRight: 10,
+                                    }}>
+                                    <Image
+                                        source={require('../img/done.png')}
+                                        style={{
+                                            width: 16,
+                                            height: 16,
+                                            resizeMode: 'contain',
+                                            marginRight: 4,
+                                        }}
+                                    />
+                                    <Text
+                                        style={{
+                                            fontWeight: 'bold',
+                                            color: 'black',
+                                        }}>
+                                        Done
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        </ScrollView>
+                    )}
                 </View>
             </View>
         );
     };
+    const dataForFlatlist = () => {
+        return orders.map(o => ({
+            key: o.sellerOrderId,
+            content: orderUnit(o),
+        }));
+    };
+    //@ts-ignore
+    const renderItem = ({item}) => {
+        return item.content;
+    };
+    //@ts-ignore
+    const keyExtractor = item => item.key;
     return (
         <View style={styles.container}>
-            <ScrollView>
-                {orderUnit()}
-            </ScrollView>
+            <FlatList
+                removeClippedSubviews
+                maxToRenderPerBatch={12}
+                initialNumToRender={12}
+                data={dataForFlatlist()}
+                renderItem={renderItem}
+                keyExtractor={keyExtractor}
+            />
         </View>
-
     );
 }
 

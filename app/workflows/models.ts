@@ -1,4 +1,5 @@
 import {IFarm} from '../common/redux/farm-reducer';
+import {IFarmer} from '../common/redux/farmer-reducer';
 
 export interface IInventoryResp {
     productName: string;
@@ -102,7 +103,8 @@ export interface BaseResp {
 
 export interface ILoginResp extends BaseResp {
     data: {
-        farmer: { id: number; phone: string; farmerName: string; };
+        farmer: IFarmer;
+        farm: IFarm[];
         jwt: string;
     };
 }

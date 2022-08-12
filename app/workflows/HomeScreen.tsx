@@ -1,7 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Image,
     Linking,
     SafeAreaView,
@@ -49,13 +48,13 @@ function HomeScreen() {
             <View style={styles.section}>
                 <Text style={styles.title}>ऑर्डर का प्रबंधन</Text>
                 <View style={{flexDirection: 'row'}}>
-                    <TouchableOpacity onPress={() => navigation.navigate('NewOrderScreen')} style={[styles.btn, {backgroundColor: 'plum'}]}>
-                        <Image source={require('../img/newOrders.png')} style={{ width: 20, height: 20, resizeMode: 'contain', marginRight: 8}} />
-                        <Text style={[styles.btnText, {color: 'rebeccapurple'}]}>
-                            नए ऑर्डर
-                        </Text>
-                        <View style={{ width: 10, height: 10, position: 'absolute', right: -4, top: -4, backgroundColor: 'crimson', borderRadius: 100, elevation: 6}} />
-                    </TouchableOpacity>
+                    {/*<TouchableOpacity onPress={() => navigation.navigate('NewOrderScreen')} style={[styles.btn, {backgroundColor: 'plum'}]}>*/}
+                    {/*    <Image source={require('../img/newOrders.png')} style={{ width: 20, height: 20, resizeMode: 'contain', marginRight: 8}} />*/}
+                    {/*    <Text style={[styles.btnText, {color: 'rebeccapurple'}]}>*/}
+                    {/*        नए ऑर्डर*/}
+                    {/*    </Text>*/}
+                    {/*    <View style={{ width: 10, height: 10, position: 'absolute', right: -4, top: -4, backgroundColor: 'crimson', borderRadius: 100, elevation: 6}} />*/}
+                    {/*</TouchableOpacity>*/}
                     <TouchableOpacity onPress={() => navigation.navigate('AllOrderScreen', {inward: true})} style={[styles.btn, {backgroundColor: 'cyan'}]}>
                         <Image source={require('../img/allOrders.png')} style={{ width: 20, height: 20, resizeMode: 'contain', marginRight: 8}} />
                         <Text style={[styles.btnText, { color: 'darkcyan'}]}>
@@ -179,7 +178,7 @@ function HomeScreen() {
             <StatusBar barStyle={'dark-content'} backgroundColor={'#FFFFF0'} />
             <ScrollView>
                 <Text style={{fontSize: 20, fontWeight: 'bold', color: '#000', paddingVertical: 2, textAlign: 'center', marginTop: 10}}>
-                    🙏 नमस्ते
+                    🙏 {farmStore.farmName}
                 </Text>
                 {getOrderOps()}
                 {getInventoryOp()}

@@ -78,6 +78,7 @@ export const getSellerOrders = (providerId: string, status: OrderStatus[]) => {
     }
     const q = `?providerId=${providerId}` + s;
     const url = API_URL + '/seller/orders' + q;
+    console.log(url);
     return ApiUtils.makeGetRequest<IGetSellerOrdersResp>(
         url,
     );
