@@ -142,6 +142,30 @@ export default function AllOrderScreen() {
                 return '#e1e1e1';
         }
     };
+    const getStatusInLang = (status: OrderStatus) => {
+        switch (status) {
+            case OrderStatus.active:
+                return 'चालू हे';
+            case OrderStatus.cancelled:
+                return 'रद्द';
+            case OrderStatus.created:
+                return 'नया ऑर्डर हे';
+            case OrderStatus.delivered:
+                return 'डिलीवर हो गया';
+            case OrderStatus.shipped:
+                return 'गाड़ी निकल गया';
+            case OrderStatus.ofd:
+                return 'डिलिवरी के लिए रवाना';
+            case OrderStatus.rts:
+                return 'पैक हो गया';
+            case OrderStatus.rtoi:
+                return 'ऑर्डर वापसी शुरू';
+            case OrderStatus.rtod:
+                return 'ऑर्डर वापसी अंत';
+            default:
+                return '#e1e1e1';
+        }
+    };
     const orderUnit = (item: ISellerOrderResponse) => {
         const shippable = isTransitionPossible(
             item.status as OrderStatus,
@@ -180,7 +204,7 @@ export default function AllOrderScreen() {
                             fontWeight: 'bold',
                             textTransform: 'uppercase',
                         }}>
-                        Status: {item.status}
+                        {getStatusInLang(item.status as OrderStatus)}
                     </Text>
                 </View>
                 <View
@@ -465,7 +489,7 @@ export default function AllOrderScreen() {
                                             fontWeight: 'bold',
                                             color: 'black',
                                         }}>
-                                        Packed
+                                        पैक हो गया
                                     </Text>
                                 </TouchableOpacity>
                             )}
@@ -505,7 +529,7 @@ export default function AllOrderScreen() {
                                             fontWeight: 'bold',
                                             color: 'black',
                                         }}>
-                                        shipped
+                                        गाड़ी निकल गया
                                     </Text>
                                 </TouchableOpacity>
                             )}
@@ -545,7 +569,7 @@ export default function AllOrderScreen() {
                                             fontWeight: 'bold',
                                             color: 'black',
                                         }}>
-                                        Done
+                                        डिलीवर हो गया
                                     </Text>
                                 </TouchableOpacity>
                             )}
