@@ -56,7 +56,6 @@ export default function AllOrderScreen() {
     const farmStore: IFarm = useSelector((state: any) => state.farmReducer);
     const toast = useToast();
     useEffect(() => {
-        console.log(store.getState());
         (async () => {
             try {
                 const res = await getSellerOrders(farmStore.providerId, [
@@ -66,8 +65,12 @@ export default function AllOrderScreen() {
                     OrderStatus.cancelled,
                     OrderStatus.rts,
                 ]);
-                console.log('orders', res.data.orders);
-                setOrders(res.data.orders);
+                if (res.data.orders === undefined) {
+                    toast.show('कोई ऑर्डर न्ही हे');
+                    setOrders([]);
+                } else {
+                    setOrders(res.data.orders);
+                }
             } finally {
                 setLoading(false);
             }
