@@ -14,10 +14,10 @@ interface isvc {
 
 const apiUrls = {
     // dev: {
-    //     API_URL: 'http://10.0.2.2:5000', // For emulator
+    //     API_URL: 'http://10.0.2.2:3000', // For emulator
     // },
     dev: {
-        API_URL: 'http://192.168.2.3:3000', // Use IP - when running on real device
+        API_URL: 'http://192.168.2.7:3000', // Use IP - when running on real device
     },
     prod: {
         API_URL: 'https://api.dhoomnow.com',

@@ -51,6 +51,7 @@ function Login(props: {onLogin: () => void}) {
         }
         const ph = phone.slice(-10);
         const resp = await requestOtp({phone: ph});
+        console.log(resp)
         if (resp.errors !== null) {
             Alert.alert('त्रुटि हुई: ', JSON.stringify(resp.errors));
             return;
@@ -59,12 +60,16 @@ function Login(props: {onLogin: () => void}) {
             setShowOtp(true);
             return;
         } else {
-            Alert.alert('ओटीपी का अनुरोध करने में विफल, कुछ समय बाद पुनः प्रयास करें');
+            Alert.alert(
+                'ओटीपी का अनुरोध करने में विफल, कुछ समय बाद पुनः प्रयास करें',
+            );
         }
     };
     return (
         <View style={{flex: 1, backgroundColor: 'ivory', padding: 20}}>
-            <Text style={{fontSize: 32, fontWeight: 'bold', color: 'black'}}>रजिस्टर/लॉलिन करें</Text>
+            <Text style={{fontSize: 32, fontWeight: 'bold', color: 'black'}}>
+                रजिस्टर/लॉलिन करें
+            </Text>
             <Text style={{fontSize: 18, paddingTop: 20, paddingBottom: 8}}>
                 अपना मोबाइल नंबर दर्ज करें
             </Text>

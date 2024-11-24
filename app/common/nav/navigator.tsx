@@ -22,7 +22,7 @@ export type AppStackParamList = {
 export const AppStack = createNativeStackNavigator<AppStackParamList>();
 
 const AppStackScreens = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(true);
     const credsStore: CredentialsState = useSelector((state: any) => state.credentialsReducer);
     useEffect(() => {
         if (credsStore.accessToken.length > 0) {
